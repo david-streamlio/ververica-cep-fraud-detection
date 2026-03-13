@@ -31,6 +31,7 @@ public class FraudulentTxnDetector {
         // 1. Set up the execution environment
         final StreamExecutionEnvironment environment
                 = StreamExecutionEnvironment.getExecutionEnvironment();
+        environment.setParallelism(3);
 
         var properties = buildSecurityProps(new Properties());
 
@@ -38,7 +39,7 @@ public class FraudulentTxnDetector {
 
         var watermarkStrategy =
                 WatermarkStrategy
-                        .<Transaction>forBoundedOutOfOrderness(Duration.ofSeconds(10))
+                        .<Transaction>forBoundedOutOfOrderness(Duration.ofSeconds(100))
                         .withTimestampAssigner((event, timestamp) -> Timestamp.valueOf(event.getTimestamp()).getTime());
 
         // 2. Create a datastream from the Kafka source
@@ -147,7 +148,7 @@ public class FraudulentTxnDetector {
         // 6. Union the alert streams
         DataStream<Alert> anomaliesAlertStream
                 = highValueAlerts.union(rapidTxnAlerts, locationAlerts);
-//        anomaliesAlertStream.print();
+        anomaliesAlertStream.print();
 
         // 7. Sink the alerts to Kafka
         KafkaSink<Alert> kafkaAlertSink = createKafkaAlertSink(properties);
